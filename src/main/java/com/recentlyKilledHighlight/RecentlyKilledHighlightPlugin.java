@@ -27,7 +27,6 @@ import java.awt.*;
 import java.util.*;
 import java.util.List;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 
 @Slf4j
@@ -143,7 +142,6 @@ public class RecentlyKilledHighlightPlugin extends Plugin {
 	public void onMenuEntryAdded(MenuEntryAdded event)
 	{
 		final MenuEntry menuEntry = event.getMenuEntry();
-		final MenuAction menuAction = menuEntry.getType();
 		final NPC npc = menuEntry.getNpc();
 
 		if (npc == null)
@@ -151,10 +149,9 @@ public class RecentlyKilledHighlightPlugin extends Plugin {
 			return;
 		}
 
-
 		Color color = null;
 
-		if (color == null && highlightedNpcs.containsKey(npc) && config.highlightMenuNames() && !npcUtil.isDying(npc))
+		if (highlightedNpcs.containsKey(npc) && config.highlightMenuNames() && !npcUtil.isDying(npc))
 		{
 			color = config.highlightColor();
 		}
@@ -193,7 +190,6 @@ public class RecentlyKilledHighlightPlugin extends Plugin {
 		}
 
 		while (killedNpcs.size() > config.maxNpcs() && killedNpcs.size() > 0) {
-			String names = killedNpcs.stream().map(x -> x.getName()).collect(Collectors.joining(","));
 			killedNpcs.removeLast();
 		}
 
