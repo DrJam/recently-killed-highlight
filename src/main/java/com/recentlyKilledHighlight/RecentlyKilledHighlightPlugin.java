@@ -47,14 +47,14 @@ public class RecentlyKilledHighlightPlugin extends Plugin {
 	@Inject
 	private NpcUtil npcUtil;
 
-	private final ArrayDeque<NPC> killedNpcs = new ArrayDeque<NPC>();
-
-	private List<String> ignores = new ArrayList<>();
-
 	@Getter(AccessLevel.PACKAGE)
 	private final Map<NPC, HighlightedNpc> highlightedNpcs = new HashMap<>();
 
 	private final Function<NPC, HighlightedNpc> isHighlighted = highlightedNpcs::get;
+
+	private final ArrayDeque<NPC> killedNpcs = new ArrayDeque<NPC>();
+
+	private List<String> ignoreFilters = new ArrayList<>();
 
 	@Override
 	protected void startUp() throws Exception {
@@ -87,7 +87,7 @@ public class RecentlyKilledHighlightPlugin extends Plugin {
 
 		if (containsNpc(killedNpcs, npc))
 		{
-			highlightedNpcs.put(npc, highlightedNpc(npc));
+			highlightedNpcs.put(npc, getHighlightedNpc(npc));
 		}
 
 	}
@@ -119,23 +119,27 @@ public class RecentlyKilledHighlightPlugin extends Plugin {
 		if (!(event.getSource() instanceof NPC)) {
 			return;
 		}
-		if (event.getTarget() != client.getLocalPlayer()) {
+
+		final NPC sourceNpc = (NPC) event.getSource();
+		NPC highlightedSourceNpc = findNpc(highlightedNpcs.keySet(), sourceNpc);
+
+		// not targeting player, and not currently highlighted
+		if (event.getTarget() != client.getLocalPlayer() && highlightedSourceNpc == null) {
+			// not in remembered list, do nothing
+			if (!containsNpc(killedNpcs, sourceNpc)) {
+				return;
+			}
+
+			highlightedNpcs.put(sourceNpc, getHighlightedNpc(sourceNpc));
+			npcOverlayService.rebuild();
 			return;
 		}
 
-		final NPC sourceNpc = (NPC) event.getSource();
-		NPC sourceInList = highlightedNpcs.keySet().stream().filter(x -> x.getIndex() == sourceNpc.getIndex()).findFirst().orElse(null);
-
-		if (sourceInList != null) {
-			highlightedNpcs.remove(sourceInList);
+		// targeting player & highlighted, unhighlight
+		if (highlightedSourceNpc != null) {
+			highlightedNpcs.remove(highlightedSourceNpc);
 			npcOverlayService.rebuild();
 		}
-	}
-
-	@Subscribe
-	public void onGameTick(GameTick event)
-	{
-
 	}
 
 	@Subscribe
@@ -163,23 +167,25 @@ public class RecentlyKilledHighlightPlugin extends Plugin {
 		}
 	}
 
-	private HighlightedNpc highlightedNpc(NPC npc)
+	@Subscribe
+	public void onConfigChanged(ConfigChanged configChanged)
 	{
-		return HighlightedNpc.builder()
-				.npc(npc)
-				.highlightColor(config.highlightColor())
-				.fillColor(config.fillColor())
-				.hull(config.highlightHull())
-				.tile(config.highlightTile())
-				.outline(config.highlightOutline())
-				.borderWidth((float) config.borderWidth())
-				.outlineFeather(config.outlineFeather())
-				.build();
+		if (!configChanged.getGroup().equals("recentlyKilledHighlight"))
+		{
+			return;
+		}
+
+		clientThread.invoke(this::rebuild);
 	}
 
-	void rebuild()
+	@Provides
+	RecentlyKilledHighlightConfig provideConfig(ConfigManager configManager) {
+		return configManager.getConfig(RecentlyKilledHighlightConfig.class);
+	}
+
+	private void rebuild()
 	{
-		ignores = getIgnores();
+		ignoreFilters = getIgnoreFilters();
 		highlightedNpcs.clear();
 
 		if (client.getGameState() != GameState.LOGGED_IN && client.getGameState() != GameState.LOADING)
@@ -200,7 +206,7 @@ public class RecentlyKilledHighlightPlugin extends Plugin {
 				if (nameIsIgnored(npc.getName())) {
 					killedNpcs.removeIf(x -> npc.getIndex()==x.getIndex());
 				} else {
-					highlightedNpcs.put(npc, highlightedNpc(npc));
+					highlightedNpcs.put(npc, getHighlightedNpc(npc));
 				}
 			}
 		}
@@ -208,7 +214,21 @@ public class RecentlyKilledHighlightPlugin extends Plugin {
 		npcOverlayService.rebuild();
 	}
 
-	private List<String> getIgnores() {
+	private HighlightedNpc getHighlightedNpc(NPC npc)
+	{
+		return HighlightedNpc.builder()
+				.npc(npc)
+				.highlightColor(config.highlightColor())
+				.fillColor(config.fillColor())
+				.hull(config.highlightHull())
+				.tile(config.highlightTile())
+				.outline(config.highlightOutline())
+				.borderWidth((float) config.borderWidth())
+				.outlineFeather(config.outlineFeather())
+				.build();
+	}
+
+	private List<String> getIgnoreFilters() {
 		final String configNpcsString = config.npcsToIgnoreString();
 
 		if (configNpcsString.isEmpty()) {
@@ -223,7 +243,7 @@ public class RecentlyKilledHighlightPlugin extends Plugin {
 			return false;
 		}
 
-		for (String configName : ignores)  {
+		for (String configName : ignoreFilters)  {
 			if (WildcardMatcher.matches(configName.trim(), npcName)) {
 				return true;
 			}
@@ -232,24 +252,13 @@ public class RecentlyKilledHighlightPlugin extends Plugin {
 		return false;
 	}
 
-	@Provides
-	RecentlyKilledHighlightConfig provideConfig(ConfigManager configManager) {
-		return configManager.getConfig(RecentlyKilledHighlightConfig.class);
-	}
-
-	@Subscribe
-	public void onConfigChanged(ConfigChanged configChanged)
-	{
-		if (!configChanged.getGroup().equals("recentlyKilledHighlight"))
-		{
-			return;
-		}
-
-		clientThread.invoke(this::rebuild);
-	}
-
 	private boolean containsNpc(Collection<NPC> npcs, NPC npc)
 	{
 		return npcs.stream().anyMatch((collectionNPC) -> collectionNPC.getIndex() == npc.getIndex());
+	}
+
+	private NPC findNpc(Collection<NPC> npcs, NPC npc)
+	{
+		return npcs.stream().filter((collectionNpc) -> collectionNpc.getIndex() == npc.getIndex()).findFirst().orElse(null);
 	}
 }
