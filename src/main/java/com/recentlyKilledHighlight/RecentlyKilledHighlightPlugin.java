@@ -208,9 +208,11 @@ public class RecentlyKilledHighlightPlugin extends Plugin {
 				if (nameIsIgnored(npc.getName())) {
 					killedNpcs.removeIf(x -> npc.getIndex()==x.getIndex());
 				} else {
+					if (npc.getInteracting() != client.getLocalPlayer()) {
 					highlightedNpcs.put(npc, getHighlightedNpc(npc));
 				}
 			}
+		}
 		}
 
 		npcOverlayService.rebuild();
