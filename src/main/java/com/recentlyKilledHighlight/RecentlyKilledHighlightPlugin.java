@@ -129,7 +129,9 @@ public class RecentlyKilledHighlightPlugin extends Plugin {
 			if (!containsNpc(killedNpcs, sourceNpc)) {
 				return;
 			}
-
+			if (sourceNpc.isDead()) {
+				return;
+			}
 			highlightedNpcs.put(sourceNpc, getHighlightedNpc(sourceNpc));
 			npcOverlayService.rebuild();
 			return;
