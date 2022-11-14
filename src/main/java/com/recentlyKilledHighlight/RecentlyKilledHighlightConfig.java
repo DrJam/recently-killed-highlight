@@ -136,6 +136,27 @@ public interface RecentlyKilledHighlightConfig extends Config {
 		return 0;
 	}
 
+	@ConfigSection(
+			name = "Experimental",
+			description = "Unstable or high-load options",
+			position = 4,
+			closedByDefault = true
+	)
+	String experimentalSection = "experimentalSection";
+
+	@ConfigItem(
+			position = 0,
+			keyName = "noLimit",
+			name = "No Limit",
+			description = "When enabled, removes the limit of max NPCs remembered, will remember every NPC killed for the rest of the session.",
+			section = experimentalSection
+	)
+	default boolean noLimit()
+	{
+		return false;
+	}
+
+
 
 
 

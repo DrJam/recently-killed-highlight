@@ -108,7 +108,7 @@ public class RecentlyKilledHighlightPlugin extends Plugin {
 		if (!containsNpc(killedNpcs, npc) && !nameIsIgnored(npcName)) {
 			killedNpcs.push(npc);
 
-			if (killedNpcs.size() > config.maxNpcs()) {
+			if (killedNpcs.size() > config.maxNpcs() && !config.noLimit()) {
 				killedNpcs.removeLast();
 			}
 		}
@@ -197,8 +197,10 @@ public class RecentlyKilledHighlightPlugin extends Plugin {
 			return;
 		}
 
-		while (killedNpcs.size() > config.maxNpcs() && killedNpcs.size() > 0) {
-			killedNpcs.removeLast();
+		if (!config.noLimit()) {
+			while (killedNpcs.size() > config.maxNpcs() && killedNpcs.size() > 0) {
+				killedNpcs.removeLast();
+			}
 		}
 
 		for (NPC npc : client.getNpcs())
