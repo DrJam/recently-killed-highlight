@@ -120,6 +120,10 @@ public class RecentlyKilledHighlightPlugin extends Plugin {
 			return;
 		}
 
+		if (!config.todoMode()) {
+			return;
+		}
+
 		final NPC sourceNpc = (NPC) event.getSource();
 		NPC highlightedSourceNpc = findNpc(highlightedNpcs.keySet(), sourceNpc);
 
@@ -210,7 +214,7 @@ public class RecentlyKilledHighlightPlugin extends Plugin {
 				if (nameIsIgnored(npc.getName())) {
 					killedNpcs.removeIf(x -> npc.getIndex()==x.getIndex());
 				} else {
-					if (npc.getInteracting() != client.getLocalPlayer()) {
+					if (npc.getInteracting() != client.getLocalPlayer() || !config.todoMode()) {
 						highlightedNpcs.put(npc, getHighlightedNpc(npc));
 					}
 				}

@@ -30,6 +30,17 @@ public interface RecentlyKilledHighlightConfig extends Config {
 
 	@ConfigItem(
 			position = 2,
+			keyName = "todoMode",
+			name = "To-Do Mode",
+			description = "Removes NPC highlights when they target you."
+	)
+	default boolean todoMode()
+	{
+		return true;
+	}
+
+	@ConfigItem(
+			position = 3,
 			keyName = "npcIgnoreList",
 			name = "Ignore List",
 			description = "List of NPC names to ignore"
@@ -42,7 +53,7 @@ public interface RecentlyKilledHighlightConfig extends Config {
 	@ConfigSection(
 			name = "Render Style",
 			description = "The render style of Killed NPCs",
-			position = 3
+			position = 4
 	)
 	String renderStyleSection = "renderStyleSection";
 
@@ -139,7 +150,7 @@ public interface RecentlyKilledHighlightConfig extends Config {
 	@ConfigSection(
 			name = "Experimental",
 			description = "Unstable or high-load options",
-			position = 4,
+			position = 5,
 			closedByDefault = true
 	)
 	String experimentalSection = "experimentalSection";
